@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boardmasters + Morzine · Summer 2027</title>
+<meta name="description" content="Family camper road trip itinerary — Jersey → Boardmasters → Morzine → Jersey, August 2027.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root {
+    --ink: #1a1512;
+    --ink-soft: #4a3f38;
+    --paper: #fbf7f0;
+    --paper-warm: #f3ece0;
+    --rule: #d9cfc0;
+    --accent: #c4642d;        /* warm ochre — alpine sun */
+    --accent-deep: #8c3f16;
+    --sea: #2d6a7e;            /* ferry blue */
+    --mountain: #5d5247;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 48px 28px 96px; }
+
+  /* Masthead */
+  header.masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 20px;
+    margin-bottom: 36px;
+  }
+  .kicker {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent-deep);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-size: clamp(38px, 6vw, 62px);
+    line-height: 1.02;
+    margin: 0 0 14px;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .dek {
+    font-size: 19px;
+    color: var(--ink-soft);
+    margin: 0;
+    max-width: 640px;
+  }
+
+  /* Section headings */
+  h2 {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 56px 0 20px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  h3 {
+    font-size: 24px;
+    margin: 28px 0 8px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+
+  p { margin: 0 0 14px; }
+  a { color: var(--accent-deep); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: var(--accent); }
+
+  /* Pull quote / stat band */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin: 24px 0 8px;
+    padding: 20px 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .stat .num {
+    font-size: 34px;
+    font-weight: 500;
+    line-height: 1;
+    display: block;
+    color: var(--accent-deep);
+    margin-bottom: 4px;
+  }
+  .stat .lab {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mountain);
+  }
+  @media (max-width: 640px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* Map */
+  #map {
+    height: 460px;
+    width: 100%;
+    margin: 12px 0 10px;
+    border: 1px solid var(--rule);
+    background: var(--paper-warm);
+  }
+  .map-legend {
+    display: flex;
+    gap: 22px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .map-legend .swatch {
+    display: inline-block; width: 22px; height: 3px; vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  /* Timeline */
+  .timeline { list-style: none; margin: 0; padding: 0; }
+  .timeline li {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 22px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .timeline li:last-child { border-bottom: none; }
+  .timeline .date {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mountain);
+    padding-top: 2px;
+  }
+  .timeline .date b { display: block; color: var(--ink); font-weight: 600; font-size: 14px; letter-spacing: 0.04em; }
+  .timeline .what { font-size: 17px; }
+  .timeline .what strong { color: var(--accent-deep); font-weight: 600; font-style: italic; }
+  .timeline .meta {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    color: var(--mountain);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  /* Boardmasters feature card */
+  .boardmasters {
+    background: var(--paper-warm);
+    border: 1px solid var(--rule);
+    padding: 26px 28px;
+    margin: 20px 0;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: start;
+  }
+  .boardmasters .brand {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sea);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .boardmasters h3 { margin-top: 0; }
+  .boardmasters .when {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .boardmasters ul { margin: 8px 0 0; padding-left: 18px; font-size: 15px; color: var(--ink-soft); }
+  .boardmasters ul li { margin-bottom: 4px; }
+  .boardmasters .ticket {
+    text-align: right;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    color: var(--mountain);
+  }
+  .boardmasters .ticket .big {
+    display: block;
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--accent);
+    font-family: Georgia, serif;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  @media (max-width: 640px) {
+    .boardmasters { grid-template-columns: 1fr; }
+    .boardmasters .ticket { text-align: left; }
+  }
+
+  /* Budget table */
+  table.budget {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 16px;
+  }
+  table.budget th, table.budget td {
+    text-align: left;
+    padding: 10px 6px;
+    border-bottom: 1px solid var(--rule);
+  }
+  table.budget th {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mountain);
+    font-weight: 600;
+  }
+  table.budget td:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+  table.budget tr.total td { border-bottom: none; border-top: 2px solid var(--ink); font-weight: 600; color: var(--ink); padding-top: 14px; }
+
+  /* Footer */
+  footer.credit {
+    margin-top: 72px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    color: var(--mountain);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* Leaflet marker label */
+  .pin-label {
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    padding: 2px 8px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    white-space: nowrap;
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+
+  @media print {
+    body { background: white; }
+    #map { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="kicker">The Davies Family · Dispatch Nº 1</div>
+  <h1>Boardmasters<br>then <em>Morzine</em></h1>
+  <p class="dek">A family camper loop from Jersey, through a Cornish music festival, across France to the Chalet Sautaillet in Morzine, and home via Saint-Malo. Thirteen hundred miles, twenty-five days, one van.</p>
+</header>
+
+<div class="stats">
+  <div class="stat"><span class="num">25</span><span class="lab">Days</span></div>
+  <div class="stat"><span class="num">~1,300</span><span class="lab">Miles Driven</span></div>
+  <div class="stat"><span class="num">3</span><span class="lab">Sea Crossings</span></div>
+  <div class="stat"><span class="num">1</span><span class="lab">Chalet</span></div>
+</div>
+
+<h2>The Route</h2>
+<p>Outbound in <strong style="color:var(--accent-deep)">ochre</strong>, return in <strong style="color:var(--sea)">blue</strong>. Click a pin for the leg summary.</p>
+<div id="map"></div>
+<div class="map-legend">
+  <span><span class="swatch" style="background:var(--accent-deep)"></span>Outbound · Jersey → Morzine</span>
+  <span><span class="swatch" style="background:var(--sea)"></span>Return · Morzine → Jersey</span>
+</div>
+
+<h2>Boardmasters 2027</h2>
+<div class="boardmasters">
+  <div>
+    <div class="brand">Watergate Bay · Newquay</div>
+    <h3>Chase &amp; Status · Disclosure · Wolf Alice</h3>
+    <div class="when">Wednesday 4 – Sunday 8 August 2027 (camping through Mon 9 Aug)</div>
+    <ul>
+      <li>Five-day festival across Watergate Bay and Fistral Beach</li>
+      <li>Live music, surfing, skate, art, food</li>
+      <li>Cornwall Airport Newquay (NQY) is 4 km from the venue</li>
+      <li>Camper-friendly campsite access with wristband entry</li>
+    </ul>
+  </div>
+  <div class="ticket">
+    <span class="big">4–8</span>
+    Aug 2027
+  </div>
+</div>
+
+<h2>Day by Day</h2>
+<ul class="timeline">
+  <li>
+    <div class="date"><b>Tue 3 Aug</b></div>
+    <div class="what">
+      <strong>DFDS ferry Jersey → Poole.</strong> Evening departure ~18:00, arrive Poole ~22:30. Overnight near port.
+      <div class="meta">4h 30m · Conventional ferry · Camper carriage</div>
+    </div>
+  </li>
+  <li>
+    <div class="date"><b>Wed 4 Aug</b></div>
+    <div class="what">
+      <strong>Poole → Watergate Bay.</strong> Easy morning drive down the A31/A35/A30. Pitch up at Boardmasters for check-in.
+      <div class="meta">162 mi · 3h 15m</div>
+    </div>
+  </li>
+  <li>
+    <div class="date"><b>Thu–Sun<br>4–8 Aug</b></div>
+    <div class="what">
+      <strong>Boardmasters.</strong> Five days of music on Watergate Bay, surf sessions at Fistral.
+      <div class="meta">Festival on-site</div>
+    </div>
+  </li>
+  <li>
+    <div class="date"><b>Mon 9 Aug</b></div>
+    <div class="what">
+      <strong>Cornwall → Folkestone (via a halfway night).</strong> Don't try it in one push. Overnight near Stonehenge / Salisbury, then Folkestone.
+      <div class="meta">~310 mi split across 2 days</div>
+    </div>
+  </li>
+  <li>
+    <div class="date"><b>Tue 10 Aug</b></div>
+    <div class="what">
+      <strong>LeShuttle Folkestone → Calais.</strong> Morning crossing. Push on to Reims or Dijon for the night.
+      <div class="meta">35 min tunnel · then 3–6h on the A26</div>
+    </div>
+  </li>
+  <li>
+    <div class="date"><b>Wed 11 Aug</b></div>
+    <div class="what">
+      <strong>Final leg to Morzine.</strong> A39 → A40 past Geneva → D902 up through Les Gets. Chalet by mid-afternoon.
+      <div class="meta">~4–5h from Dijon</div>
+    </div>
+  </li>
+  <li>
+    <div class="date"><b>11–26 Aug</b></div>
+    <div class="what">
+      <strong>Two weeks in Morzine.</strong> Chalet Sautaillet. Mountain biking, lake swims, slow mornings.
+      <div class="meta">Chalet base</div>
+    </div>
+  </li>
+  <li>
+    <div class="date"><b>Wed 26 Aug</b></div>
+    <div class="what">
+      <strong>Morzine → Tours.</strong> Long day on the A40/A6/A10 skirting south of Paris.
+      <div class="meta">~750 km · 8h</div>
+    </div>
+  </li>
+  <li>
+    <div class="date"><b>Thu 27 Aug</b></div>
+    <div class="what">
+      <strong>Tours → Saint-Malo.</strong> Short cruise through Brittany. Overnight camper park near the port.
+      <div class="meta">~300 km · 3h</div>
+    </div>
+  </li>
+  <li>
+    <div class="date"><b>Sat 28 Aug</b></div>
+    <div class="what">
+      <strong>Condor Voyager Saint-Malo → Jersey.</strong> Morning sailing (~07:30 → 09:00). Home for lunch.
+      <div class="meta">1h 25m · Fast ferry</div>
+    </div>
+  </li>
+</ul>
+
+<h2>Rough Costs</h2>
+<table class="budget">
+  <thead>
+    <tr><th>Leg</th><th>Estimate</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>DFDS Jersey → Poole (camper, one-way)</td><td>£200–350</td></tr>
+    <tr><td>LeShuttle Folkestone → Calais (camper, one-way)</td><td>£180–280</td></tr>
+    <tr><td>Condor Saint-Malo → Jersey (camper, one-way)</td><td>£200–350</td></tr>
+    <tr><td>French tolls (both ways)</td><td>~€200</td></tr>
+    <tr><td>Fuel (~1,300 mi, camper MPG)</td><td>£400–500</td></tr>
+    <tr class="total"><td>Rough total (excl. food, campsites, festival tickets)</td><td>£1,180–1,650</td></tr>
+  </tbody>
+</table>
+<p style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:var(--mountain);margin-top:8px;">Book early. Crossings and Eurotunnel climb steeply in July/August if left late.</p>
+
+<footer class="credit">
+  <span>Draft itinerary · subject to Mel's amendments.</span>
+  <span>Updated <span id="stamp"></span></span>
+</footer>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  // Stops: [name, lat, lon, note]
+  const outbound = [
+    ["Jersey (St Helier)", 49.1833, -2.1167, "Day 1 · DFDS ferry departs ~18:00"],
+    ["Poole", 50.7192, -1.9820, "Day 1 · Arrive ~22:30, overnight"],
+    ["Watergate Bay · Boardmasters", 50.4511, -5.0455, "Day 2–6 · Festival site"],
+    ["Folkestone · Eurotunnel", 51.0944, 1.1340, "Day 8 · Morning LeShuttle"],
+    ["Calais", 50.9513, 1.8587, "Day 8 · Arrive on continent"],
+    ["Reims / Dijon stopover", 48.3, 4.5, "Day 8 · Overnight midway"],
+    ["Morzine · Chalet Sautaillet", 46.1808, 6.7108, "Day 9 · Arrive mid-afternoon"]
+  ];
+  const ret = [
+    ["Morzine · Chalet Sautaillet", 46.1808, 6.7108, "Day 24 · Depart"],
+    ["Tours", 47.3941, 0.6848, "Day 24 · Overnight"],
+    ["Saint-Malo", 48.6490, -2.0260, "Day 25 · Overnight near port"],
+    ["Jersey (St Helier)", 49.1833, -2.1167, "Day 26 · Home ~09:00"]
+  ];
+
+  const map = L.map('map', { scrollWheelZoom: false }).setView([48.5, 1.5], 5);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map);
+
+  const outCoords = outbound.map(s => [s[1], s[2]]);
+  const retCoords = ret.map(s => [s[1], s[2]]);
+
+  L.polyline(outCoords, { color: '#8c3f16', weight: 3.5, opacity: 0.9, dashArray: null }).addTo(map);
+  L.polyline(retCoords, { color: '#2d6a7e', weight: 3.5, opacity: 0.9, dashArray: '8,6' }).addTo(map);
+
+  function pinIcon(color) {
+    return L.divIcon({
+      className: '',
+      html: `<div style="width:14px;height:14px;background:${color};border:2px solid #fbf7f0;border-radius:50%;box-shadow:0 0 0 1px #1a1512;"></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7]
+    });
+  }
+
+  const seen = new Set();
+  outbound.forEach((s, i) => {
+    const key = s[0];
+    if (seen.has(key)) return;
+    seen.add(key);
+    L.marker([s[1], s[2]], { icon: pinIcon('#8c3f16') })
+      .addTo(map)
+      .bindPopup(`<strong>${s[0]}</strong><br><span style="font-size:12px;color:#4a3f38">${s[3]}</span>`);
+  });
+  ret.forEach((s, i) => {
+    if (seen.has(s[0])) return;
+    seen.add(s[0]);
+    L.marker([s[1], s[2]], { icon: pinIcon('#2d6a7e') })
+      .addTo(map)
+      .bindPopup(`<strong>${s[0]}</strong><br><span style="font-size:12px;color:#4a3f38">${s[3]}</span>`);
+  });
+
+  const all = L.featureGroup([
+    L.polyline(outCoords), L.polyline(retCoords)
+  ]);
+  map.fitBounds(all.getBounds().pad(0.15));
+
+  // Date stamp
+  document.getElementById('stamp').textContent = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+</script>
+</body>
+</html>
